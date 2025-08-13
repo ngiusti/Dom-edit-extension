@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "On-Page Visual Editor (AI)",
+  "version": "0.0.1",
+  "description": "AI-powered visual editor for web pages",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_popup": "ui/popup.html"
+  },
+  "side_panel": {
+    "default_path": "ui/sidepanel.html"
+  },
+  "options_page": "ui/options.html"
+}
