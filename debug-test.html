@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .test-element {
+            margin: 10px 0;
+            padding: 15px;
+            background-color: white;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .test-element:hover {
+            background-color: #e3f2fd;
+            border-color: #0056b3;
+        }
+        .test-element.clicked {
+            background-color: #e8f5e8;
+            border-color: #28a745;
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .debug-info {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .console-output {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Test Page</h1>
+    
+    <div class="instructions">
+        <h3>Debug Instructions</h3>
+        <ol>
+            <li>Open the Chrome extension side panel</li>
+            <li>Go to the "Inspect" tab</li>
+            <li>Check the browser console for detailed logging</li>
+            <li>Try enabling inspect mode using the toggle</li>
+            <li>Click on elements below to test functionality</li>
+            <li>Use the debug buttons below to test communication</li>
+        </ol>
+    </div>
+
+    <div class="debug-info">
+        <h4>Debug Information</h4>
+        <p><strong>Page URL:</strong> <span id="pageUrl"></span></p>
+        <p><strong>Extension ID:</strong> <span id="extensionId"></span></p>
+        <p><strong>Content Script Status:</strong> <span id="contentScriptStatus">Unknown</span></p>
+        <p><strong>Message Count:</strong> <span id="messageCount">0</span></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Controls</h2>
+        <button id="testPing">Test Ping</button>
+        <button id="testInspectEnable">Test Inspect Enable</button>
+        <button id="testInspectDisable">Test Inspect Disable</button>
+        <button id="testDeselect">Test Deselect</button>
+        <button id="testGetProperties">Test Get Properties</button>
+        <button id="testGetAllIds">Test Get All Element IDs</button>
+        <button id="testShowIndicators">Test Show All ID Indicators</button>
+        <button id="testHideIndicators">Test Hide All ID Indicators</button>
+        <button id="testToggleState">Test Toggle State</button>
+        <button id="clearConsole">Clear Console Output</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Elements</h2>
+        <p>Click on these elements to test inspect mode functionality:</p>
+        
+        <div id="header" class="test-element">
+            <h3>Header Element</h3>
+            <p>This div has ID: <code>header</code></p>
+        </div>
+        
+        <div id="content" class="test-element">
+            <h3>Content Element</h3>
+            <p>This div has ID: <code>content</code></p>
+        </div>
+        
+        <div class="test-element">
+            <h3>No ID Element</h3>
+            <p>This div has no ID attribute</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Output</h2>
+        <div id="consoleOutput" class="console-output">Console output will appear here...</div>
+    </div>
+
+    <script>
+        // Debug logging
+        let messageCount = 0;
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            console.log(logMessage);
+            
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.textContent += logMessage + '\n';
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+        }
+        
+        // Update debug information
+        function updateDebugInfo() {
+            document.getElementById('pageUrl').textContent = window.location.href;
+            document.getElementById('extensionId').textContent = chrome?.runtime?.id || 'Not available';
+            document.getElementById('messageCount').textContent = messageCount;
+        }
+        
+        // Test functions
+        function testPing() {
+            log('Testing ping functionality...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "PING" })
+                    .then(() => log('Ping successful'))
+                    .catch(error => log(`Ping failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testInspectEnable() {
+            log('Testing inspect enable...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "INSPECT_ENABLE" })
+                    .then(() => log('Inspect enable successful'))
+                    .catch(error => log(`Inspect enable failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testInspectDisable() {
+            log('Testing inspect disable...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "INSPECT_DISABLE" })
+                    .then(() => log('Inspect disable successful'))
+                    .catch(error => log(`Inspect disable failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testDeselect() {
+            log('Testing deselect...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "DESELECT_ELEMENT" })
+                    .then(() => log('Deselect successful'))
+                    .catch(error => log(`Deselect failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testGetProperties() {
+            log('Testing get properties...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "GET_ELEMENT_PROPERTIES" })
+                    .then(() => log('Get properties successful'))
+                    .catch(error => log(`Get properties failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testGetAllIds() {
+            log('Testing get all element IDs...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "GET_ALL_ELEMENTS_WITH_IDS" })
+                    .then(() => log('Get all element IDs successful'))
+                    .catch(error => log(`Get all element IDs failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testShowIndicators() {
+            log('Testing show all ID indicators...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "SHOW_ALL_ID_INDICATORS" })
+                    .then(() => log('Show all ID indicators successful'))
+                    .catch(error => log(`Show all ID indicators failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testHideIndicators() {
+            log('Testing hide all ID indicators...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "HIDE_ALL_ID_INDICATORS" })
+                    .then(() => log('Hide all ID indicators successful'))
+                    .catch(error => log(`Hide all ID indicators failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function testToggleState() {
+            log('Testing toggle state...');
+            if (chrome?.runtime?.sendMessage) {
+                chrome.runtime.sendMessage({ type: "TOGGLE_INSPECT_MODE" })
+                    .then(() => log('Toggle state successful'))
+                    .catch(error => log(`Toggle state failed: ${error.message}`));
+            } else {
+                log('Chrome runtime not available');
+            }
+        }
+        
+        function clearConsole() {
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.textContent = 'Console cleared...\n';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('testPing').addEventListener('click', testPing);
+        document.getElementById('testInspectEnable').addEventListener('click', testInspectEnable);
+        document.getElementById('testInspectDisable').addEventListener('click', testInspectDisable);
+        document.getElementById('testDeselect').addEventListener('click', testDeselect);
+        document.getElementById('testGetProperties').addEventListener('click', testGetProperties);
+        document.getElementById('testGetAllIds').addEventListener('click', testGetAllIds);
+        document.getElementById('testShowIndicators').addEventListener('click', testShowIndicators);
+        document.getElementById('testHideIndicators').addEventListener('click', testHideIndicators);
+        document.getElementById('testToggleState').addEventListener('click', testToggleState);
+        document.getElementById('clearConsole').addEventListener('click', clearConsole);
+        
+        // Test element click handling
+        document.addEventListener('click', function(event) {
+            const testElement = event.target.closest('.test-element');
+            if (testElement) {
+                log(`Clicked on test element: ${testElement.id || 'no-id'}`);
+                testElement.classList.add('clicked');
+                setTimeout(() => testElement.classList.remove('clicked'), 1000);
+            }
+        });
+        
+        // Listen for messages from content script
+        if (chrome?.runtime?.onMessage) {
+            chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+                messageCount++;
+                log(`Received message: ${message.type}`);
+                updateDebugInfo();
+                
+                if (message.type === "NODE_SELECTED") {
+                    log(`Element selected: ${message.selector}`);
+                } else if (message.type === "ELEMENT_PROPERTIES") {
+                    log(`Element properties received: ${Object.keys(message.properties).length} properties`);
+                } else if (message.type === "ALL_ELEMENTS_WITH_IDS") {
+                    log(`All elements with IDs received: ${message.elements.length} elements`);
+                    message.elements.forEach(element => {
+                        log(`  - ID: ${element.id}, Tag: ${element.tagName}, Selector: ${element.selector}`);
+                    });
+                }
+            });
+        }
+        
+        // Initialize
+        log('Debug test page loaded');
+        updateDebugInfo();
+        
+        // Check for content script
+        setTimeout(() => {
+            if (window.__ope_cs_injected) {
+                document.getElementById('contentScriptStatus').textContent = 'Injected';
+                log('Content script detected as injected');
+            } else {
+                document.getElementById('contentScriptStatus').textContent = 'Not injected';
+                log('Content script not detected');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.sendMessage({ type: "SIDE_PANEL_OPENED" })
         .then(() => {
             console.log('Side panel opened message sent to background');
+            
+            // Request current inspect mode state after a short delay to ensure content script is ready
+            setTimeout(() => {
+                requestInspectModeState();
+            }, 500);
         })
         .catch((error) => {
             console.error('Failed to send side panel opened message:', error);
@@ -57,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    // Reset toggle state when side panel is opened (handles page refresh case)
+    inspectToggle.checked = false;
+    
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === "NODE_SELECTED") {
@@ -68,6 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (message.type === "ELEMENT_PROPERTIES") {
             console.log('Element properties received:', message.properties);
             displayElementProperties(message.properties);
+        } else if (message.type === "INSPECT_MODE_STATE") {
+            console.log('Inspect mode state received:', message.enabled);
+            // Sync the toggle with the actual inspect mode state
+            inspectToggle.checked = message.enabled;
         }
     });
     
@@ -79,6 +91,26 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch((error) => {
                 console.error('Failed to request element properties:', error);
+            });
+    }
+    
+    // Function to request current inspect mode state from content script
+    function requestInspectModeState() {
+        chrome.runtime.sendMessage({ type: "GET_INSPECT_MODE_STATE" })
+            .then((response) => {
+                if (response && response.enabled !== undefined) {
+                    console.log('Inspect mode state received:', response.enabled);
+                    inspectToggle.checked = response.enabled;
+                } else {
+                    // If no response, assume inspect mode is disabled (page refresh case)
+                    console.log('No inspect mode state response, resetting toggle to disabled');
+                    inspectToggle.checked = false;
+                }
+            })
+            .catch((error) => {
+                console.error('Failed to request inspect mode state:', error);
+                // On error, assume inspect mode is disabled (page refresh case)
+                inspectToggle.checked = false;
             });
     }
     
@@ -234,4 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         console.log('Properties display updated with:', properties);
     }
+    
+    // Listen for page visibility changes (handles page refresh case)
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            // Page became visible (after refresh), sync inspect mode state
+            console.log('Page became visible, syncing inspect mode state');
+            setTimeout(() => {
+                requestInspectModeState();
+            }, 1000); // Wait a bit longer for content script to be ready
+        }
+    });
 });

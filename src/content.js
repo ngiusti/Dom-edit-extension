@@ -80,6 +80,20 @@ if (!window.__ope_cs_injected) {
         return path.join(' > ');
     }
     
+    /**
+     * Generate a random alphanumeric string for unique element identification
+     * @param {number} length - Length of the generated string (default: 10)
+     * @returns {string} Random alphanumeric string
+     */
+    function generateUniqueId(length = 10) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+    
     // Function to create the overlay element
     function createOverlay() {
         if (overlayElement) return;
@@ -224,6 +238,13 @@ if (!window.__ope_cs_injected) {
             return;
         }
         
+        // Add unique data-uid attribute if it doesn't exist
+        if (!target.hasAttribute('data-uid')) {
+            const uniqueId = generateUniqueId(10);
+            target.setAttribute('data-uid', uniqueId);
+            console.log('Added data-uid to element:', uniqueId);
+        }
+        
         // Select the new element
         selectedElement = target;
         isElementSelected = true;
@@ -235,14 +256,15 @@ if (!window.__ope_cs_injected) {
         const selector = getUniqueSelector(target);
         const breadcrumb = generateBreadcrumb(target, 6);
         
-        console.log('Element selected:', { selector, breadcrumb, element: target });
+        console.log('Element selected:', { selector, breadcrumb, element: target, uid: target.getAttribute('data-uid') });
         
         // Post message to side panel
         try {
             chrome.runtime.sendMessage({
                 type: "NODE_SELECTED",
                 selector: selector,
-                breadcrumb: breadcrumb
+                breadcrumb: breadcrumb,
+                uid: target.getAttribute('data-uid')
             });
             console.log('Selection message sent to side panel');
         } catch (error) {
@@ -277,6 +299,16 @@ if (!window.__ope_cs_injected) {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === "PING_FROM_BG") {
             console.log("Pong from content script");
+            // Send current inspect mode state to sync with side panel
+            try {
+                chrome.runtime.sendMessage({
+                    type: "INSPECT_MODE_STATE",
+                    enabled: inspectModeEnabled
+                });
+                console.log('Inspect mode state sent to side panel:', inspectModeEnabled);
+            } catch (error) {
+                console.error('Failed to send inspect mode state:', error);
+            }
         } else if (message.type === "CHECK_CS_STATUS") {
             // Respond to status check to confirm content script is running
             console.log("Content script status check received");
@@ -305,8 +337,20 @@ if (!window.__ope_cs_injected) {
             } else {
                 console.log('No element selected, cannot extract properties');
             }
+        } else if (message.type === "GET_INSPECT_MODE_STATE") {
+            // Respond with current inspect mode state
+            sendResponse({ enabled: inspectModeEnabled });
         }
     });
+    
+    // Send heartbeat to background script to maintain connection
+    setInterval(() => {
+        try {
+            chrome.runtime.sendMessage({ type: "HEARTBEAT" });
+        } catch (error) {
+            console.warn('Heartbeat failed, connection may be lost:', error);
+        }
+    }, 30000); // Every 30 seconds
     
     // Function to extract computed CSS properties from an element
     function extractElementProperties(element) {
